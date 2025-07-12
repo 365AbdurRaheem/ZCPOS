@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { crudConfigs } from './config';
+import { crudConfigs } from '../config';
 
 const Dashboard: React.FC = () => (
   <div className="p-6">
