@@ -38,9 +38,30 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/roles - Read All Roles with Pagniation
+// GET /api/roles - Read All Roles (No Pagination)
 
 router.get('/', async (req, res) => {
+  try {
+    const range = 'Sheet1!A2:D'; // Skip header row
+    const data = await readSheet(SHEET_ID, range);
+
+    const roles = data?.map(row => ({
+      id: row[0] || '',
+      roleName: row[1] || '',
+      description: row[2] || '',
+      createdOn: row[3] || ''
+    })) || [];
+
+    res.json(roles);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// GET /api/roles - Read All Roles with Pagniation
+
+router.get('/paginated', async (req, res) => {
   try {
     const pageNumber = parseInt(req.query.pageNumber) || 1;
     const pageSize = parseInt(req.query.pageSize) || 20;

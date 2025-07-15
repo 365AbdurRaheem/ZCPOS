@@ -5,7 +5,7 @@ class Role {
     }
 
     this.id = id;
-    this.roleName = roleName;
+    this.role = roleName;
     this.description = description;
     this.createdOn = createdOn || new Date().toISOString();
   }

@@ -3,22 +3,29 @@ const BaseEntity = require('./BaseEntity');
 
 class ProcessingStage extends BaseEntity {
   constructor({
-    id,
     articleName,
     articleNo,
     name,
     quantity,
-    price,
+    total,
+    paid,
+    remaining,
     createdOn,
-    personId,
+    personName,
     condition,
     status
   }) {
-    super({ id, articleName, articleNo, name, quantity, price, createdOn });
-
-    if (!personId) {
-      throw new Error('personId (FK to Person) is required');
-    }
+    // Call parent constructor with the correct parameters that BaseEntity expects
+    super({ 
+      articleName, 
+      articleNo, 
+      name, 
+      quantity, 
+      total, 
+      paid, 
+      remaining, 
+      createdOn 
+    });
 
     const allowedConditions = [
       'raw',
@@ -42,7 +49,7 @@ class ProcessingStage extends BaseEntity {
       throw new Error(`Invalid status "${status}". Must be one of: ${allowedStatuses.join(', ')}`);
     }
 
-    this.personId = personId;
+    this.person = personName;
     this.stage = normalizedCondition;
     this.status = normalizedStatus;
   }

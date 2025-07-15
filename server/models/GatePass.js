@@ -3,24 +3,33 @@ const BaseEntity = require('./BaseEntity');
 
 class GatePass extends BaseEntity {
   constructor({
-    id,
     articleName,
     articleNo,
     name,
     quantity,
-    price,
+    total,
+    paid,
+    remaining,
     createdOn,
-    personId,
+    personName,
     source,
     destination,
     type
   }) {
-    super({ id, articleName, articleNo, name, quantity, price, createdOn });
+    super({
+      articleName,
+      articleNo,
+      name,
+      quantity,
+      total,
+      paid,
+      remaining,
+      createdOn
+    });
 
-    if (!personId) throw new Error('personId is required');
-    if (!source) throw new Error('source is required');
-    if (!destination) throw new Error('destination is required');
-    if (!type) throw new Error('type is required');
+    if (!source) throw new Error('Source is required');
+    if (!destination) throw new Error('Destination is required');
+    if (!type) throw new Error('Gate pass type is required');
 
     const allowedTypes = [
       'embroidery',
@@ -35,13 +44,15 @@ class GatePass extends BaseEntity {
 
     const normalizedType = type.toLowerCase();
     if (!allowedTypes.includes(normalizedType)) {
-      throw new Error(`Invalid gate pass type "${type}". Must be one of: ${allowedTypes.join(', ')}`);
+      throw new Error(
+        `Invalid gate pass type "${type}". Must be one of: ${allowedTypes.join(', ')}`
+      );
     }
 
-    this.personId = personId;
+    this.person = personName || '';
     this.source = source;
     this.destination = destination;
-    this.type = normalizedType;
+    this.gatePassType = normalizedType;
   }
 }
 
