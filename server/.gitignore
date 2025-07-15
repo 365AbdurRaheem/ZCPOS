@@ -2,7 +2,7 @@
 node_modules/
 
 # Ignore sensitive credentials
-server/config/credentials.json
+config/credentials.json
 
 # Ignore environment file
 .env
