@@ -3,7 +3,7 @@ const router = express.Router();
 const { readSheet, appendRow, ensureHeaders, updateRow, deleteRow, getTotalRowCount } = require('../utils/googleSheetsService');
 const GatePass = require('../models/GatePass');
 
-const SHEET_ID = 'your-id'; // Gate Pass Sheet ID
+const SHEET_ID = '1zZ3mVBseWP6EtsoGiD3VluFnT0HmRLdckyuctw_0ras'; // Gate Passes
 const RANGE = 'Sheet1!A2:M';
 const HEADERS = ['ID', 'ArticleName', 'ArticleNo', 'Name', 'Quantity', 'Total', 'Paid', 'Remaining', 'CreatedOn', 'PersonName', 'Source', 'Destination', 'GatePassType'];
 

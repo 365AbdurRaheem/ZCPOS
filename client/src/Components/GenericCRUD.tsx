@@ -1,42 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import GenericForm from './GenericForm';
 import DataTable from './DataTable';
 import { Plus, XCircle } from 'lucide-react';
+import type { CRUDConfig } from '../types/crud';
 
-interface FormField {
-  name: string;
-  label: string;
-  type: 'text' | 'email' | 'number' | 'select' | 'textarea' | 'date';
-  required?: boolean;
-  options?: string[];
-  placeholder?: string;
-}
-
-interface CRUDConfig {
-  title: string;
-  fields: FormField[];
-  columns: string[];
-  initialData?: any[];
-}
-
-const CRUDPage: React.FC<{
-  config: CRUDConfig;
-}> = ({ config }) => {
-  const [data, setData] = useState(config.initialData || []);
+const CRUDPage: React.FC<{ config: CRUDConfig }> = ({ config }) => {
+  const [data, setData] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [viewingItem, setViewingItem] = useState(null);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [viewingItem, setViewingItem] = useState<any | null>(null);
 
-  const handleSave = (formData: any) => {
-    if (editingItem) {
-      setData(prev => prev.map(item => 
-        item.id === editingItem.id ? { ...formData, id: editingItem.id } : item
-      ));
-    } else {
-      setData(prev => [...prev, { ...formData, id: Date.now().toString() }]);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    loadData();
+  }, [page]);
+
+  const loadData = async () => {
+    try {
+      const result = await config.fetchItems(page, pageSize); // must return { total, roles }
+      const filtered = result.roles.filter((item: any) =>
+        config.fields.some(field =>
+          String(item[field.name] || '')
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase())
+        )
+      );
+      setData(filtered);
+      setTotal(result.total);
+    } catch (err) {
+      console.error('Error fetching data:', err);
     }
-    setShowForm(false);
-    setEditingItem(null);
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+    setPage(1);
+  };
+
+  const handleSave = async (formData: any) => {
+    try {
+      if (editingItem) {
+        await config.updateItem(editingItem.id, formData);
+      } else {
+        await config.createItem(formData);
+      }
+      setShowForm(false);
+      setEditingItem(null);
+      await loadData();
+    } catch (err) {
+      console.error('Error saving item:', err);
+    }
   };
 
   const handleEdit = (item: any) => {
@@ -44,9 +61,14 @@ const CRUDPage: React.FC<{
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this record?')) {
-      setData(prev => prev.filter(item => item.id !== id));
+      try {
+        await config.deleteItem(id);
+        await loadData();
+      } catch (err) {
+        console.error('Error deleting item:', err);
+      }
     }
   };
 
@@ -56,10 +78,13 @@ const CRUDPage: React.FC<{
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold text-gray-800">{config.title}</h1>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setShowForm(true);
+            setEditingItem(null);
+          }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <Plus size={16} />
@@ -74,6 +99,26 @@ const CRUDPage: React.FC<{
         onDelete={handleDelete}
         onView={handleView}
       />
+
+      <div className="flex justify-between items-center mt-4">
+        <button
+          onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+          disabled={page === 1}
+          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+        >
+          Previous
+        </button>
+        <span className="text-sm text-gray-700">
+          Page {page} of {Math.ceil(total / pageSize)}
+        </span>
+        <button
+          onClick={() => setPage(prev => prev + 1)}
+          disabled={page * pageSize >= total}
+          className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
 
       {showForm && (
         <GenericForm

@@ -29,6 +29,14 @@ const Sidebar: React.FC = () => {
 
   const navItems: NavItem[] = [
     { 
+      name: 'Roles', 
+      href: '/roles',
+      icon: Crown,
+      subItems: [
+        { name: 'View All', href: '/roles' }
+      ]
+    },
+    { 
       name: 'Raw Material', 
       href: '/raw-material',
       icon: Package,

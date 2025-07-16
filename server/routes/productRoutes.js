@@ -3,7 +3,7 @@ const router = express.Router();
 const { readSheet, appendRow, ensureHeaders, updateRow, deleteRow, getTotalRowCount } = require('../utils/googleSheetsService');
 const Product = require('../models/Product');
 
-const SHEET_ID = 'your-id'; // Product Sheet ID
+const SHEET_ID = '1jCqnt5ZNlfd-3-K1sLRVmpIWXNpf6z5zeuqsEoajCTU'; // Product
 const RANGE = 'Sheet1!A2:J';
 const HEADERS = ['ID', 'ArticleName', 'ArticleNo', 'ProductName', 'Quantity', 'Total', 'Paid', 'Remaining', 'CreatedOn', 'BarcodeNumber'];
 

@@ -24,10 +24,9 @@ router.post('/', async (req, res) => {
       roleName,
       description
     });
-
     await appendRow(SHEET_ID, RANGE, [
       role.id,
-      role.roleName,
+      role.role,
       role.description,
       role.createdOn
     ]);
@@ -58,33 +57,24 @@ router.get('/', async (req, res) => {
   }
 });
 
-
-// GET /api/roles - Read All Roles with Pagniation
-
+// GET /api/roles/paginated
 router.get('/paginated', async (req, res) => {
   try {
     const pageNumber = parseInt(req.query.pageNumber) || 1;
     const pageSize = parseInt(req.query.pageSize) || 20;
-    const search = req.query.search || '';
 
-    // Compute range for this page
-    const startRow = (pageNumber - 1) * pageSize + 2; // +2 to skip header
+    const startRow = (pageNumber - 1) * pageSize + 2; // skip header
     const endRow = startRow + pageSize - 1;
     const range = `Sheet1!A${startRow}:D${endRow}`;
+
     const data = await readSheet(SHEET_ID, range);
-    let roles = data?.map(row => ({
+
+    const roles = data?.map(row => ({
       id: row[0] || '',
       roleName: row[1] || '',
       description: row[2] || '',
       createdOn: row[3] || ''
     })) || [];
-
-    if (search) {
-      roles = roles.filter(role =>
-        role.roleName.toLowerCase().includes(search.toLowerCase()) ||
-        role.description.toLowerCase().includes(search.toLowerCase())
-      );
-    }
 
     const total = await getTotalRowCount(SHEET_ID, 'Sheet1');
 

@@ -1,7 +1,9 @@
 // server/utils/googleSheetsService.js
 const { google } = require('googleapis');
 const { GoogleAuth } = require('google-auth-library');
-const keys = require(process.env.GOOGLE_CREDENTIALS_PATH);
+const path = require('path');
+const CREDENTIALS_PATH = path.resolve(__dirname, '..', process.env.GOOGLE_CREDENTIALS_PATH);
+const keys = require(CREDENTIALS_PATH);
 
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 

@@ -11,10 +11,25 @@ const DataTable: React.FC<{
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredData = data.filter(item =>
-    columns.some(col => 
+    columns.some(col =>
       item[col]?.toString().toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
+
+  // Helper: format timestamp into readable date+time
+  const formatDateTime = (value: string) => {
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return value;
+    return date.toLocaleString('en-PK', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+  };
 
   return (
     <div className="bg-white rounded-lg shadow">
@@ -35,22 +50,24 @@ const DataTable: React.FC<{
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase">#</th>
               {columns.map(col => (
                 <th key={col} className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase">
                   {col.replace(/([A-Z])/g, ' $1').trim()}
                 </th>
               ))}
-              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 uppercase">
-                Actions
-              </th>
+              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {filteredData.map((item, index) => (
               <tr key={item.id || index} className="hover:bg-gray-50">
+                <td className="px-4 py-3 text-sm text-gray-900">{index + 1}</td>
                 {columns.map(col => (
                   <td key={col} className="px-4 py-3 text-sm text-gray-900">
-                    {item[col] || '-'}
+                    {col.toLowerCase().includes('date') || col.toLowerCase().includes('createdon')
+                      ? formatDateTime(item[col])
+                      : item[col] || '-'}
                   </td>
                 ))}
                 <td className="px-4 py-3 text-right space-x-2">
