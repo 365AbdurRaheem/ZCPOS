@@ -5,7 +5,7 @@ const DataTable: React.FC<{
   data: any[];
   columns: string[];
   onEdit: (item: any) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: any) => void;
   onView: (item: any) => void;
 }> = ({ data, columns, onEdit, onDelete, onView }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,7 +16,6 @@ const DataTable: React.FC<{
     )
   );
 
-  // Helper: format timestamp into readable date+time
   const formatDateTime = (value: string) => {
     const date = new Date(value);
     if (isNaN(date.getTime())) return value;
@@ -50,22 +49,28 @@ const DataTable: React.FC<{
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase">#</th>
               {columns.map(col => (
-                <th key={col} className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase">
-                  {col.replace(/([A-Z])/g, ' $1').trim()}
+                <th
+                  key={col}
+                  className="px-4 py-3 text-left text-sm font-medium text-gray-700 uppercase"
+                >
+                  {col === '__serial'
+                    ? 'Sr.'
+                    : col.replace(/([A-Z])/g, ' $1').trim()}
                 </th>
               ))}
-              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 uppercase">Actions</th>
+              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 uppercase">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {filteredData.map((item, index) => (
               <tr key={item.id || index} className="hover:bg-gray-50">
-                <td className="px-4 py-3 text-sm text-gray-900">{index + 1}</td>
                 {columns.map(col => (
                   <td key={col} className="px-4 py-3 text-sm text-gray-900">
-                    {col.toLowerCase().includes('date') || col.toLowerCase().includes('createdon')
+                    {col.toLowerCase().includes('date') ||
+                    col.toLowerCase().includes('createdon')
                       ? formatDateTime(item[col])
                       : item[col] || '-'}
                   </td>
@@ -86,7 +91,7 @@ const DataTable: React.FC<{
                     <Edit size={16} />
                   </button>
                   <button
-                    onClick={() => onDelete(item.id)}
+                    onClick={() => onDelete(item)}
                     className="text-red-600 hover:text-red-800"
                     title="Delete"
                   >
@@ -100,9 +105,7 @@ const DataTable: React.FC<{
       </div>
 
       {filteredData.length === 0 && (
-        <div className="text-center py-8 text-gray-500">
-          No data found
-        </div>
+        <div className="text-center py-8 text-gray-500">No data found</div>
       )}
     </div>
   );

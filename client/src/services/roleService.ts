@@ -6,6 +6,20 @@ const BASE_URL = 'http://localhost:5000/api/roles';
 //   return await res.json();
 // };
 
+export const fetchTotalCount = async () => {
+  const res = await fetch(`${BASE_URL}/total`, {
+    method: 'GET',
+    headers: {
+      'Cache-Control': 'no-store' // optional: prevent 304 caching issues
+    }
+  });
+  if (!res.ok) {
+    throw new Error('Failed to fetch total count');
+  }
+  const data = await res.json(); // should be { total: number }
+  return data;
+};
+
 export async function fetchRoles(pageNumber = 1, pageSize = 10) {
   const res = await fetch(
     `http://localhost:5000/api/roles/paginated?pageNumber=${pageNumber}&pageSize=${pageSize}`
@@ -40,7 +54,7 @@ export const updateRole = async (id: string, updatedRole: any) => {
   return await res.json();
 };
 
-export const deleteRole = async (id: string) => {
+export const deleteRole = async (id: number) => {
   const res = await fetch(`${BASE_URL}/${id}`, {
     method: 'DELETE'
   });

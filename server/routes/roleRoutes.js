@@ -14,10 +14,6 @@ router.post('/', async (req, res) => {
     if (!roleName) return res.status(400).json({ error: 'roleName is required' });
 
     await ensureHeaders(SHEET_ID, "Sheet1!A1:D", HEADERS);
-    const data = await readSheet(SHEET_ID, RANGE);
-
-    const exists = data?.some(row => (row[1] || '').toLowerCase() === roleName.toLowerCase());
-    if (exists) return res.status(400).json({ error: 'Role already exists' });
 
     const role = new Role({
       id: `ID-${Date.now()}`,
@@ -34,6 +30,15 @@ router.post('/', async (req, res) => {
     res.status(201).json({ message: 'Role created', role });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/total', async (req, res) => {
+  try {
+    const total = await getTotalRowCount(SHEET_ID, 'Sheet1');
+    res.json({ total });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch total rows' });
   }
 });
 
@@ -76,10 +81,7 @@ router.get('/paginated', async (req, res) => {
       createdOn: row[3] || ''
     })) || [];
 
-    const total = await getTotalRowCount(SHEET_ID, 'Sheet1');
-
     res.json({
-      total,
       pageNumber,
       pageSize,
       roles
@@ -116,17 +118,11 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE /api/roles/:id - Soft Delete Role (blank row)
-router.delete('/:id', async (req, res) => {
+router.delete('/:index', async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const data = await readSheet(SHEET_ID, RANGE);
-    const index = data?.findIndex(row => row[0] === id);
-
+    const { index } = req.params;
     if (index === -1) return res.status(404).json({ error: 'Role not found' });
-
     await deleteRow(SHEET_ID, index + 2);
-
     res.json({ message: 'Role deleted (row removed)' });
   } catch (err) {
     res.status(500).json({ error: err.message });
