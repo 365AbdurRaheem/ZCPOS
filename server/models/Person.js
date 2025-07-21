@@ -7,10 +7,10 @@ class Person {
     if (!name) {
       throw new Error('Name is required');
     }
-     if (!phone) {
+    if (!phone) {
       throw new Error('Phone number is required');
     }
-    
+
     this.id = id;
     this.name = name;
     this.role = roleName;
@@ -18,6 +18,7 @@ class Person {
     this.phone = phone || '';
     this.email = email || '';
     this.address = address || '';
+    this.createdOn = createdOn || new Date().toISOString();
   }
 }
 

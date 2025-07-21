@@ -5,16 +5,14 @@ const Role = require('../models/Role');
 
 const SHEET_ID = '1j4900WCzjxG2IfzTUZWdC6un7kEtGoY8onMW71A9YGw'; // Roles Sheet ID
 const RANGE = 'Sheet1!A2:D';
-const HEADERS = ['ID', 'RoleName', 'Description', 'CreatedOn'];
+// const HEADERS = ['ID', 'RoleName', 'Description', 'CreatedOn'];
 
 // POST /api/roles - Create Role
 router.post('/', async (req, res) => {
   try {
     const { roleName, description } = req.body;
     if (!roleName) return res.status(400).json({ error: 'roleName is required' });
-
-    await ensureHeaders(SHEET_ID, "Sheet1!A1:D", HEADERS);
-
+    // await ensureHeaders(SHEET_ID, "Sheet1!A1:D", HEADERS);
     const role = new Role({
       id: `ID-${Date.now()}`,
       roleName,
@@ -56,7 +54,22 @@ router.get('/', async (req, res) => {
       createdOn: row[3] || ''
     })) || [];
 
-    res.json(roles);
+    res.json({roles : roles});
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/roleNames', async (req, res) => {
+  try {
+    const range = 'Sheet1!B2:B'; // Fetch only B column starting from row 2
+    const data = await readSheet(SHEET_ID, range);
+
+    const roleNames = data?.map(row => ({
+      roleName: row[0] || ''
+    })) || [];
+
+    res.json({ roleNames : roleNames });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -117,10 +130,10 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/roles/:id - Soft Delete Role (blank row)
+// DELETE /api/roles/:index 
 router.delete('/:index', async (req, res) => {
   try {
-    const { index } = req.params;
+    const index = parseInt(req.params.index)
     if (index === -1) return res.status(404).json({ error: 'Role not found' });
     await deleteRow(SHEET_ID, index + 2);
     res.json({ message: 'Role deleted (row removed)' });

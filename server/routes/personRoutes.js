@@ -13,7 +13,7 @@ const Person = require('../models/Person');
 
 const SHEET_ID = '1k_dNq0zBNwb8hMmEFQMaMlB0A79n2ZIlEUdIYjL_jeY'; // Persons
 const RANGE = 'Sheet1!A2:H';
-const HEADERS = ['ID', 'Name', 'Role', 'CNIC', 'Phone', 'Email', 'Address', 'CreatedOn'];
+// const HEADERS = ['ID', 'Name', 'Role', 'CNIC', 'Phone', 'Email', 'Address', 'CreatedOn'];
 
 // POST /api/persons - Create Person
 router.post('/', async (req, res) => {
@@ -24,8 +24,8 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'name, roleName, and phone are required' });
     }
 
-    await ensureHeaders(SHEET_ID, 'Sheet1!A1:H', HEADERS);
-    const data = await readSheet(SHEET_ID, RANGE);
+    // await ensureHeaders(SHEET_ID, 'Sheet1!A1:H', HEADERS);
+    // const data = await readSheet(SHEET_ID, RANGE);
 
     const person = new Person({
       id: `ID-${Date.now()}`,
@@ -34,10 +34,8 @@ router.post('/', async (req, res) => {
       cnic,
       phone,
       email,
-      address,
-      createdOn: new Date().toISOString()
+      address
     });
-
     await appendRow(SHEET_ID, RANGE, [
       person.id,
       person.name,
@@ -55,17 +53,24 @@ router.post('/', async (req, res) => {
   }
 });
 
-// GET /api/persons?roleName=SomeRole - Get Persons by RoleName (No Pagination)
+router.get('/total', async (req, res) => {
+  try {
+    const total = await getTotalRowCount(SHEET_ID, 'Sheet1');
+    res.json({ total });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch total rows' });
+  }
+});
+
+// GET /api/roles - Read All Roles (No Pagination)
+
 router.get('/', async (req, res) => {
   try {
-    const { roleName } = req.query;
-    const range = 'Sheet1!A2:H'; // Skip header row
-    const data = await readSheet(SHEET_ID, range);
-
+    const data = await readSheet(SHEET_ID, RANGE);
     let persons = data?.map(row => ({
       id: row[0] || '',
       name: row[1] || '',
-      role: row[2] || '',
+      roleName: row[2] || '',
       cnic: row[3] || '',
       phone: row[4] || '',
       email: row[5] || '',
@@ -73,23 +78,45 @@ router.get('/', async (req, res) => {
       createdOn: row[7] || ''
     })) || [];
 
-    if (roleName) {
-      persons = persons.filter(p => p.role.toLowerCase() == roleName.toLowerCase());
-    }
-
-    res.json(persons);
+    res.json({persons : persons});
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
+
+// GET /api/persons?roleName=SomeRole - Get Persons by RoleName (No Pagination)
+// router.get('/', async (req, res) => {
+//   try {
+//     const { roleName } = req.query;
+//     const range = 'Sheet1!A2:H'; // Skip header row
+//     const data = await readSheet(SHEET_ID, range);
+
+//     let persons = data?.map(row => ({
+//       id: row[0] || '',
+//       name: row[1] || '',
+//       role: row[2] || '',
+//       cnic: row[3] || '',
+//       phone: row[4] || '',
+//       email: row[5] || '',
+//       address: row[6] || '',
+//       createdOn: row[7] || ''
+//     })) || [];
+
+//     if (roleName) {
+//       persons = persons.filter(p => p.role.toLowerCase() == roleName.toLowerCase());
+//     }
+
+//     res.json(persons);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 // GET /api/persons - Read All Persons with Pagination + Search + roleName filter
 router.get('/paginated', async (req, res) => {
   try {
     const pageNumber = parseInt(req.query.pageNumber) || 1;
     const pageSize = parseInt(req.query.pageSize) || 20;
-    const search = req.query.search || '';
-    const roleNameFilter = req.query.roleName || ''; // From query
 
     const startRow = (pageNumber - 1) * pageSize + 2;
     const endRow = startRow + pageSize - 1;
@@ -100,7 +127,7 @@ router.get('/paginated', async (req, res) => {
     let persons = data?.map(row => ({
       id: row[0] || '',
       name: row[1] || '',
-      role: row[2] || '',
+      roleName: row[2] || '',
       cnic: row[3] || '',
       phone: row[4] || '',
       email: row[5] || '',
@@ -108,25 +135,7 @@ router.get('/paginated', async (req, res) => {
       createdOn: row[7] || ''
     })) || [];
 
-    // Apply optional roleName filter
-    if (roleNameFilter) {
-      persons = persons.filter(p => p.role.toLowerCase() === roleNameFilter.toLowerCase());
-    }
-
-    // Apply optional search filter
-    if (search) {
-      persons = persons.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.role.toLowerCase().includes(search.toLowerCase()) ||
-        p.phone.includes(search) ||
-        p.email.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    const total = await getTotalRowCount(SHEET_ID, 'Sheet1');
-
     res.json({
-      total,
       pageNumber,
       pageSize,
       persons
@@ -167,18 +176,12 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/persons/:id - Soft Delete
-router.delete('/:id', async (req, res) => {
+// DELETE /api/roles/:id 
+router.delete('/:index', async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const data = await readSheet(SHEET_ID, RANGE);
-    const index = data?.findIndex(row => row[0] === id);
-
+    const index = parseInt(req.params.index)
     if (index === -1) return res.status(404).json({ error: 'Person not found' });
-
     await deleteRow(SHEET_ID, index + 2);
-
     res.json({ message: 'Person deleted (row removed)' });
   } catch (err) {
     res.status(500).json({ error: err.message });

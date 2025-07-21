@@ -48,6 +48,7 @@ async function appendRow(sheetId, range, row) {
 }
 
 async function deleteRow(sheetId, rowIndex) {
+  console.log(rowIndex)
   const res = await sheets.spreadsheets.batchUpdate({
     spreadsheetId: sheetId,
     resource: {
