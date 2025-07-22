@@ -84,6 +84,24 @@ router.get('/', async (req, res) => {
   }
 });
 
+router.get('/personNames/:role', async (req, res) => {
+  try {
+    const { role } = req.params;
+    const data = await readSheet(SHEET_ID, 'Sheet1!B2:C'); // Read Name and Role
+    const personNames = data
+      .filter(row => row[1] && row[1].toLowerCase() === role.toLowerCase()) // Match role
+      .map(row => ({
+        name: row[0],
+        role: row[1]
+      }));
+
+    res.json({ persons: personNames });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 // GET /api/persons?roleName=SomeRole - Get Persons by RoleName (No Pagination)
 // router.get('/', async (req, res) => {
 //   try {

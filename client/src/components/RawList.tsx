@@ -12,46 +12,49 @@ interface ProcessingStage {
   paid: number;
   remaining: number;
   createdOn: string;
-  personName: string;
-  condition: string;
+  person: string;
+  stage: string;
   status: string;
 }
 
-const RawList: React.FC = () => {
+const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
   const [stages, setStages] = useState<ProcessingStage[]>([]);
   const [page, setPage] = useState<number>(1);
   const [pageSize] = useState<number>(10);
   const [total, setTotal] = useState<number>(0);
   const [search, setSearch] = useState<string>('');
   const [showForm, setShowForm] = useState<boolean>(false);
-  const [formData, setFormData] = useState<ProcessingStage>({
-    id: '',
-    articleName: '',
-    articleNo: '',
-    name: '',
-    quantity: 0,
-    total: 0,
-    paid: 0,
-    remaining: 0,
-    createdOn: '',
-    personName: '',
-    condition: '',
-    status: ''
-  });
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [roleOptions, setRoleOptions] = useState<string[]>([]);
+  const [personOptions, setPersonOptions] = useState<string[]>([]);
+  const [selectedRole, setSelectedRole] = useState<string>('');
+
+  const [formData, setFormData] = useState<ProcessingStage>({
+    id: '', articleName: '', articleNo: '', name: '', quantity: 0, total: 0,
+    paid: 0, remaining: 0, createdOn: '', person: '', stage: condition, status: ''
+  });
 
   useEffect(() => {
     fetchStages();
     fetchTotal();
   }, [page, search]);
 
+  useEffect(() => {
+    fetchRoleOptions();
+  }, []);
+
+  useEffect(() => {
+    if (selectedRole) fetchPersonOptions(selectedRole);
+  }, [selectedRole]);
+
   const fetchStages = async () => {
     const url = search
       ? `${BASE_URL}/api/processing-stages`
       : `${BASE_URL}/api/processing-stages/paginated?pageNumber=${page}&pageSize=${pageSize}`;
     const response = await fetch(url);
+    debugger
     const data = await response.json();
     setStages(data.processingStages || []);
   };
@@ -59,8 +62,53 @@ const RawList: React.FC = () => {
   const fetchTotal = async () => {
     const response = await fetch(`${BASE_URL}/api/processing-stages/total`);
     const data = await response.json();
-    setTotal(data.total || 0);
+    setTotal(typeof data.total === 'number' ? data.total : 0);
   };
+
+  const fetchRoleOptions = async () => {
+    const response = await fetch(`${BASE_URL}/api/roles/roleNames`);
+    const data = await response.json();
+    const roles = (data.roleNames as { roleName: string }[] | undefined)?.map(r => r.roleName) || [];
+    setRoleOptions([...new Set(roles)]);
+  };
+
+  const fetchPersonOptions = async (role: string) => {
+    const response = await fetch(`${BASE_URL}/api/persons/personNames/${role}`);
+    const data = await response.json();
+    const persons = data.persons.map((p: any) => p.name);
+    setPersonOptions(persons);
+  };
+
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const { name, value } = e.target;
+
+  setFormData(prev => {
+    const isNumeric = ["quantity", "total", "paid", "remaining"].includes(name);
+    const newValue = isNumeric ? Number(value) : value;
+
+    let updated = { ...prev, [name]: newValue };
+
+    // Update 'remaining' if 'total' or 'paid' changed
+    if (name === 'total' || name === 'paid') {
+      updated.remaining = Number(updated.total) - Number(updated.paid);
+    }
+
+    // Clear person if role changed
+    if (name === 'role') {
+      setSelectedRole(value);
+      updated.person = '';
+    }
+
+    return updated;
+  });
+};
+  const handleEdit = (stage: ProcessingStage) => {
+    setFormData(stage);
+    setSelectedRole('');
+    setIsEditing(true);
+    setShowForm(true);
+  };
+
 
   const handleDelete = async (serialNumber: number) => {
     if (confirm(`Do you want to delete processing stage ${serialNumber}?`)) {
@@ -74,27 +122,13 @@ const RawList: React.FC = () => {
     }
   };
 
-  const handleEdit = (stage: ProcessingStage) => {
-    setFormData(stage);
-    setIsEditing(true);
-    setShowForm(true);
-  };
-
   const handleAdd = () => {
     setFormData({
-      id: '',
-      articleName: '',
-      articleNo: '',
-      name: '',
-      quantity: 0,
-      total: 0,
-      paid: 0,
-      remaining: 0,
-      createdOn: new Date().toISOString(),
-      personName: '',
-      condition: '',
-      status: ''
+      id: '', articleName: '', articleNo: '', name: '', quantity: 0, total: 0,
+      paid: 0, remaining: 0, createdOn: new Date().toISOString(),
+      person: '', stage: '', status: ''
     });
+    setSelectedRole('');
     setIsEditing(false);
     setShowForm(true);
   };
@@ -107,33 +141,19 @@ const RawList: React.FC = () => {
       await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(formData)
       });
       await fetchStages();
       await fetchTotal();
       setShowForm(false);
       setFormData({
-        id: '',
-        articleName: '',
-        articleNo: '',
-        name: '',
-        quantity: 0,
-        total: 0,
-        paid: 0,
-        remaining: 0,
-        createdOn: '',
-        personName: '',
-        condition: '',
-        status: ''
+        id: '', articleName: '', articleNo: '', name: '', quantity: 0, total: 0,
+        paid: 0, remaining: 0, createdOn: '', person: '', stage: '', status: ''
       });
+      setSelectedRole('');
     } catch (error) {
       console.error(`${isEditing ? 'Edit' : 'Add'} failed:`, error);
     }
-  };
-
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: name === 'quantity' || name === 'total' || name === 'paid' || name === 'remaining' ? Number(value) : value });
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,20 +162,15 @@ const RawList: React.FC = () => {
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.name === 'startDate') {
-      setStartDate(e.target.value);
-    } else {
-      setEndDate(e.target.value);
-    }
+    e.target.name === 'startDate' ? setStartDate(e.target.value) : setEndDate(e.target.value);
     setPage(1);
   };
 
-  const filteredStages = stages?.filter(stage => {
-    const matchesSearch =
-      stage.articleName.toLowerCase().includes(search.toLowerCase()) ||
+  const filteredStages = stages.filter(stage => {
+    const matchesSearch = stage.articleName.toLowerCase().includes(search.toLowerCase()) ||
       stage.articleNo.toLowerCase().includes(search.toLowerCase()) ||
       stage.name.toLowerCase().includes(search.toLowerCase()) ||
-      stage.personName.toLowerCase().includes(search.toLowerCase());
+      stage.person.toLowerCase().includes(search.toLowerCase());
     const stageDate = new Date(stage.createdOn);
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate) : null;
@@ -244,41 +259,41 @@ const RawList: React.FC = () => {
               <div className="mb-4">
                 <label className="block text-gray-700">Remaining</label>
                 <input
+                  disabled
                   type="number"
                   name="remaining"
                   value={formData.remaining}
-                  onChange={handleFormChange}
                   className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="mb-4">
-                <label className="block text-gray-700">Person Name</label>
-                <input
-                  type="text"
-                  name="personName"
-                  value={formData.personName}
-                  onChange={handleFormChange}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700">Condition</label>
+                <label className="block text-gray-700">Role</label>
                 <select
-                  name="condition"
-                  value={formData.condition}
+                  name="role"
+                  value={selectedRole}
                   onChange={handleFormChange}
                   className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
-                  <option value="">Select Condition</option>
-                  <option value="raw">Raw</option>
-                  <option value="embroidery">Embroidery</option>
-                  <option value="filling">Filling</option>
-                  <option value="cutting">Cutting</option>
-                  <option value="stitching">Stitching</option>
-                  <option value="pressing">Pressing</option>
-                  <option value="packing">Packing</option>
+                  <option value="">Select Role</option>
+                  {roleOptions.map((role, idx) => (
+                    <option key={idx} value={role}>{role}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="mb-4">
+                <label className="block text-gray-700">Person Name</label>
+                <select
+                  name="person"
+                  value={formData.person}
+                  onChange={handleFormChange}
+                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select Person</option>
+                  {personOptions.map((p, idx) => (
+                    <option key={idx} value={p}>{p}</option>
+                  ))}
                 </select>
               </div>
               <div className="mb-4">
@@ -289,11 +304,11 @@ const RawList: React.FC = () => {
                   onChange={handleFormChange}
                   className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
-                />
+                >
                   <option value="">Select Status</option>
                   <option value="pending">Pending</option>
                   <option value="completed">Completed</option>
-                cidades
+                </select>
               </div>
             </div>
             <div className="flex justify-end space-x-4">
@@ -359,7 +374,7 @@ const RawList: React.FC = () => {
             <th className="border-b-2 border-gray-300 p-4 text-left">Remaining</th>
             <th className="border-b-2 border-gray-300 p-4 text-left">Created On</th>
             <th className="border-b-2 border-gray-300 p-4 text-left">Person</th>
-            <th className="border-b-2 border-gray-300 p-4 text-left">Condition</th>
+            {/* <th className="border-b-2 border-gray-300 p-4 text-left">Stage</th> */}
             <th className="border-b-2 border-gray-300 p-4 text-left">Status</th>
             <th className="border-b-2 border-gray-300 p-4 text-center">Actions</th>
           </tr>
@@ -378,8 +393,8 @@ const RawList: React.FC = () => {
                 <td className="border-b border-gray-200 p-4">{stage.paid}</td>
                 <td className="border-b border-gray-200 p-4">{stage.remaining}</td>
                 <td className="border-b border-gray-200 p-4">{new Date(stage.createdOn).toLocaleString()}</td>
-                <td className="border-b border-gray-200 p-4">{stage.personName}</td>
-                <td className="border-b border-gray-200 p-4">{stage.condition}</td>
+                <td className="border-b border-gray-200 p-4">{stage.person}</td>
+                {/* <td className="border-b border-gray-200 p-4">{stage.stage}</td> */}
                 <td className="border-b border-gray-200 p-4">{stage.status}</td>
                 <td className="border-b border-gray-200 p-4 text-center">
                   <div className="flex justify-center space-x-4">
@@ -413,4 +428,4 @@ const RawList: React.FC = () => {
   );
 };
 
-export default RawList;
+export default ProcessList;
