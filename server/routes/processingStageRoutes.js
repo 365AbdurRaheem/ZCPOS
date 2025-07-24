@@ -18,14 +18,14 @@ router.post('/', async (req, res) => {
       total,
       paid,
       remaining,
-      personName,
-      condition,
+      person,
+      stage,
       status
     } = req.body;
-
+console.log(req.body)
     if (!name) return res.status(400).json({ error: 'name is required' });
-    if (!personName) return res.status(400).json({ error: 'personName is required' });
-    if (!condition) return res.status(400).json({ error: 'condition is required' });
+    if (!person) return res.status(400).json({ error: 'personName is required' });
+    if (!stage) return res.status(400).json({ error: 'condition is required' });
     if (!status) return res.status(400).json({ error: 'status is required' });
 
     // await ensureHeaders(SHEET_ID, "Sheet1!A1:L", HEADERS);
@@ -39,8 +39,8 @@ router.post('/', async (req, res) => {
       total,
       paid,
       remaining,
-      personName,
-      condition,
+      person,
+      condition : stage,
       status
     });
 
@@ -55,7 +55,7 @@ router.post('/', async (req, res) => {
       processingStage.remaining,
       processingStage.createdOn,
       processingStage.person,
-      processingStage.stage,
+      processingStage.condition,
       processingStage.status
     ]);
 
@@ -67,19 +67,42 @@ router.post('/', async (req, res) => {
 
 router.get('/total', async (req, res) => {
   try {
-    const total = await getTotalRowCount(SHEET_ID, 'Sheet1');
+    const total = await getTotalRowCount(SHEET_ID, 'Sheet1', true);
     res.json({ total });
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch total rows' });
   }
 });
 
+router.put('/formula/update/:condition', async (req, res) => {
+  try {
+    const { condition } = req.params;
+    const formula = `=FILTER(A2:L, K2:K="${condition}")`;
+    await updateRow(SHEET_ID, 'Sheet1!N2', [formula]);
+    res.json({ message: 'Formula updated' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update formula' });
+  }
+});
+
+
+// router.get('/formula/records', async (req, res) => {
+//   try {
+//     const response = await sheets.spreadsheets.values.get({
+//       spreadsheetId: SHEET_ID,
+//       range: 'Sheet1!N2:Z',
+//     });
+//     res.json({ total: response.data.values });
+//   } catch (err) {
+//     res.status(500).json({ error: 'Failed to fetch records' });
+//   }
+// });
+
 // GET /api/processing-stages - Read All Processing Stages (No Pagination)
 router.get('/', async (req, res) => {
   try {
-    const stage = req.query.stage || '';
-
-    const range = 'Sheet1!A2:L'; // Skip header row
+    const range = 'Sheet1!N2:Z';
     const data = await readSheet(SHEET_ID, range);
 
     let processingStages = data?.map(row => ({
@@ -96,13 +119,6 @@ router.get('/', async (req, res) => {
       stage: row[10] || '',
       status: row[11] || ''
     })) || [];
-
-    // Filter by stage if provided
-    if (stage) {
-      processingStages = processingStages.filter(processingStage =>
-        processingStage.stage.toLowerCase() === stage.toLowerCase()
-      );
-    }
 
     res.json({processingStages : processingStages});
   } catch (err) {
@@ -116,12 +132,10 @@ router.get('/paginated', async (req, res) => {
     const pageNumber = parseInt(req.query.pageNumber) || 1;
     const pageSize = parseInt(req.query.pageSize) || 20;
 
-    const stage = req.query.stage || '';
-
     // Compute range for this page
     const startRow = (pageNumber - 1) * pageSize + 2; // +2 to skip header
     const endRow = startRow + pageSize - 1;
-    const range = `Sheet1!A${startRow}:L${endRow}`;
+    const range = `Sheet1!N${startRow}:Z${endRow}`;
     const data = await readSheet(SHEET_ID, range);
 
     let processingStages = data?.map(row => ({
@@ -138,14 +152,7 @@ router.get('/paginated', async (req, res) => {
       stage: row[10] || '',
       status: row[11] || ''
     })) || [];
-
-    // Filter by stage if provided
-    if (stage) {
-      processingStages = processingStages.filter(processingStage =>
-        processingStage.stage.toLowerCase() === stage.toLowerCase()
-      );
-    }
-
+    
     res.json({
       pageNumber,
       pageSize,
@@ -161,7 +168,7 @@ router.get('/paginated', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { articleName, articleNo, name, quantity, total, paid, remaining, personName, condition, status } = req.body;
+    const { articleName, articleNo, name, quantity, total, paid, remaining, person, stage, status } = req.body;
 
     const data = await readSheet(SHEET_ID, RANGE);
     const index = data?.findIndex(row => row[0] === id);
@@ -179,8 +186,8 @@ router.put('/:id', async (req, res) => {
       paid || Number(existingRow[6]) || 0,
       remaining || Number(existingRow[7]) || 0,
       existingRow[8] || new Date().toISOString(),
-      personName || existingRow[9] || '',
-      condition || existingRow[10] || '',
+      person || existingRow[9] || '',
+      stage || existingRow[10] || '',
       status || existingRow[11] || ''
     ];
 

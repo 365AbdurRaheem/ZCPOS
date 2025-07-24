@@ -86,12 +86,23 @@ async function ensureHeaders(sheetId, range, headers) {
   }
 }
 
-async function getTotalRowCount(sheetId, sheetName) {
+async function getTotalRowCount(sheetId, sheetName, process = false) {
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
     range: `${sheetName}!Z1`, // Or wherever you placed =COUNTA(A2:A)
   });
-  return parseInt(res.data.values?.[0]?.[0] || '0');
+  if(process){
+    const check = await sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: `${sheetName}!N2`, // Or wherever you placed =COUNTA(A2:A)
+    });
+    process = check.data.values?.[0]?.[0] == "#N/A";
+  }
+  return parseInt(
+  process == false 
+    ? res.data.values?.[0]?.[0] || '0' 
+    : '0'
+);
 }
 
 module.exports = { readSheet, appendRow, updateRow, deleteRow, ensureHeaders, getTotalRowCount };

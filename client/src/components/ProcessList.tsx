@@ -30,16 +30,16 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
   const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [personOptions, setPersonOptions] = useState<string[]>([]);
   const [selectedRole, setSelectedRole] = useState<string>('');
-
   const [formData, setFormData] = useState<ProcessingStage>({
     id: '', articleName: '', articleNo: '', name: '', quantity: 0, total: 0,
     paid: 0, remaining: 0, createdOn: '', person: '', stage: condition, status: ''
   });
 
   useEffect(() => {
+    fetchFilterizeProcess();
     fetchStages();
     fetchTotal();
-  }, [page, search]);
+  }, [page, search, condition]);
 
   useEffect(() => {
     fetchRoleOptions();
@@ -54,7 +54,6 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
       ? `${BASE_URL}/api/processing-stages`
       : `${BASE_URL}/api/processing-stages/paginated?pageNumber=${page}&pageSize=${pageSize}`;
     const response = await fetch(url);
-    debugger
     const data = await response.json();
     setStages(data.processingStages || []);
   };
@@ -63,6 +62,13 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
     const response = await fetch(`${BASE_URL}/api/processing-stages/total`);
     const data = await response.json();
     setTotal(typeof data.total === 'number' ? data.total : 0);
+  };
+
+  const fetchFilterizeProcess = async () => {
+    await fetch(`${BASE_URL}/api/processing-stages/formula/update/${condition}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+    });
   };
 
   const fetchRoleOptions = async () => {
@@ -80,28 +86,28 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
   };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-  const { name, value } = e.target;
+    const { name, value } = e.target;
 
-  setFormData(prev => {
-    const isNumeric = ["quantity", "total", "paid", "remaining"].includes(name);
-    const newValue = isNumeric ? Number(value) : value;
+    setFormData(prev => {
+      const isNumeric = ["quantity", "total", "paid", "remaining"].includes(name);
+      const newValue = isNumeric ? Number(value) : value;
 
-    let updated = { ...prev, [name]: newValue };
+      let updated = { ...prev, [name]: newValue };
 
-    // Update 'remaining' if 'total' or 'paid' changed
-    if (name === 'total' || name === 'paid') {
-      updated.remaining = Number(updated.total) - Number(updated.paid);
-    }
+      // Update 'remaining' if 'total' or 'paid' changed
+      if (name === 'total' || name === 'paid') {
+        updated.remaining = Number(updated.total) - Number(updated.paid);
+      }
 
-    // Clear person if role changed
-    if (name === 'role') {
-      setSelectedRole(value);
-      updated.person = '';
-    }
+      // Clear person if role changed
+      if (name === 'role') {
+        setSelectedRole(value);
+        updated.person = '';
+      }
 
-    return updated;
-  });
-};
+      return updated;
+    });
+  };
   const handleEdit = (stage: ProcessingStage) => {
     setFormData(stage);
     setSelectedRole('');
@@ -126,7 +132,7 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
     setFormData({
       id: '', articleName: '', articleNo: '', name: '', quantity: 0, total: 0,
       paid: 0, remaining: 0, createdOn: new Date().toISOString(),
-      person: '', stage: '', status: ''
+      person: '', stage: condition, status: ''
     });
     setSelectedRole('');
     setIsEditing(false);
@@ -360,7 +366,7 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
           </div>
         </div>
       </div>
-      <div className="mb-4 text-gray-600">Total Stages: {total}</div>
+      <div className="mb-4 text-gray-600">Total Entries: {total}</div>
       <table className="w-full border-collapse bg-white shadow-lg rounded-lg overflow-hidden">
         <thead>
           <tr className="bg-gray-200 text-gray-700">
@@ -380,31 +386,32 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
           </tr>
         </thead>
         <tbody>
-          {filteredStages?.map((stage: ProcessingStage, index: number) => {
-            const serialNumber = (page - 1) * pageSize + index + 1;
-            return (
-              <tr key={`${stage.id}-${index}`} className="hover:bg-gray-100 transition-colors duration-200">
-                <td className="border-b border-gray-200 p-4">{serialNumber}</td>
-                <td className="border-b border-gray-200 p-4">{stage.articleName}</td>
-                <td className="border-b border-gray-200 p-4">{stage.articleNo}</td>
-                <td className="border-b border-gray-200 p-4">{stage.name}</td>
-                <td className="border-b border-gray-200 p-4">{stage.quantity}</td>
-                <td className="border-b border-gray-200 p-4">{stage.total}</td>
-                <td className="border-b border-gray-200 p-4">{stage.paid}</td>
-                <td className="border-b border-gray-200 p-4">{stage.remaining}</td>
-                <td className="border-b border-gray-200 p-4">{new Date(stage.createdOn).toLocaleString()}</td>
-                <td className="border-b border-gray-200 p-4">{stage.person}</td>
-                {/* <td className="border-b border-gray-200 p-4">{stage.stage}</td> */}
-                <td className="border-b border-gray-200 p-4">{stage.status}</td>
-                <td className="border-b border-gray-200 p-4 text-center">
-                  <div className="flex justify-center space-x-4">
-                    <Edit size={20} className="text-blue-600 hover:text-blue-800 cursor-pointer" onClick={() => handleEdit(stage)} />
-                    <Trash2 size={20} className="text-red-600 hover:text-red-800 cursor-pointer" onClick={() => handleDelete(serialNumber)} />
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
+          {filteredStages?.[0]?.id != "#N/A" &&
+            filteredStages?.map((stage: ProcessingStage, index: number) => {
+              const serialNumber = (page - 1) * pageSize + index + 1;
+              return (
+                <tr key={`${stage.id}-${index}`} className="hover:bg-gray-100 transition-colors duration-200">
+                  <td className="border-b border-gray-200 p-4">{serialNumber}</td>
+                  <td className="border-b border-gray-200 p-4">{stage.articleName}</td>
+                  <td className="border-b border-gray-200 p-4">{stage.articleNo}</td>
+                  <td className="border-b border-gray-200 p-4">{stage.name}</td>
+                  <td className="border-b border-gray-200 p-4">{stage.quantity}</td>
+                  <td className="border-b border-gray-200 p-4">{stage.total}</td>
+                  <td className="border-b border-gray-200 p-4">{stage.paid}</td>
+                  <td className="border-b border-gray-200 p-4">{stage.remaining}</td>
+                  <td className="border-b border-gray-200 p-4">{new Date(stage.createdOn).toLocaleString()}</td>
+                  <td className="border-b border-gray-200 p-4">{stage.person}</td>
+                  {/* <td className="border-b border-gray-200 p-4">{stage.stage}</td> */}
+                  <td className="border-b border-gray-200 p-4">{stage.status}</td>
+                  <td className="border-b border-gray-200 p-4 text-center">
+                    <div className="flex justify-center space-x-4">
+                      <Edit size={20} className="text-blue-600 hover:text-blue-800 cursor-pointer" onClick={() => handleEdit(stage)} />
+                      <Trash2 size={20} className="text-red-600 hover:text-red-800 cursor-pointer" onClick={() => handleDelete(serialNumber)} />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
         </tbody>
       </table>
       <div className="mt-6 flex justify-between items-center">
