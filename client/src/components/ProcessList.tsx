@@ -17,7 +17,7 @@ interface ProcessingStage {
   status: string;
 }
 
-const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
+const ProcessList: React.FC<{ condition: string, moduleName : string }> = ({ condition, moduleName }) => {
   const [stages, setStages] = useState<ProcessingStage[]>([]);
   const [page, setPage] = useState<number>(1);
   const [pageSize] = useState<number>(10);
@@ -27,9 +27,7 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [roleOptions, setRoleOptions] = useState<string[]>([]);
   const [personOptions, setPersonOptions] = useState<string[]>([]);
-  const [selectedRole, setSelectedRole] = useState<string>('');
   const [formData, setFormData] = useState<ProcessingStage>({
     id: '', articleName: '', articleNo: '', name: '', quantity: 0, total: 0,
     paid: 0, remaining: 0, createdOn: '', person: '', stage: condition, status: ''
@@ -42,12 +40,8 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
   }, [page, search, condition]);
 
   useEffect(() => {
-    fetchRoleOptions();
+    fetchPersonOptions();
   }, []);
-
-  useEffect(() => {
-    if (selectedRole) fetchPersonOptions(selectedRole);
-  }, [selectedRole]);
 
   const fetchStages = async () => {
     const url = search
@@ -71,17 +65,10 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
     });
   };
 
-  const fetchRoleOptions = async () => {
-    const response = await fetch(`${BASE_URL}/api/roles/roleNames`);
+  const fetchPersonOptions = async () => {
+    const response = await fetch(`${BASE_URL}/api/persons/personNames`);
     const data = await response.json();
-    const roles = (data.roleNames as { roleName: string }[] | undefined)?.map(r => r.roleName) || [];
-    setRoleOptions([...new Set(roles)]);
-  };
-
-  const fetchPersonOptions = async (role: string) => {
-    const response = await fetch(`${BASE_URL}/api/persons/personNames/${role}`);
-    const data = await response.json();
-    const persons = data.persons.map((p: any) => p.name);
+    const persons = data?.persons?.map((p: any) => p.name);
     setPersonOptions(persons);
   };
 
@@ -99,18 +86,11 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
         updated.remaining = Number(updated.total) - Number(updated.paid);
       }
 
-      // Clear person if role changed
-      if (name === 'role') {
-        setSelectedRole(value);
-        updated.person = '';
-      }
-
       return updated;
     });
   };
   const handleEdit = (stage: ProcessingStage) => {
     setFormData(stage);
-    setSelectedRole('');
     setIsEditing(true);
     setShowForm(true);
   };
@@ -134,7 +114,6 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
       paid: 0, remaining: 0, createdOn: new Date().toISOString(),
       person: '', stage: condition, status: ''
     });
-    setSelectedRole('');
     setIsEditing(false);
     setShowForm(true);
   };
@@ -156,7 +135,6 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
         id: '', articleName: '', articleNo: '', name: '', quantity: 0, total: 0,
         paid: 0, remaining: 0, createdOn: '', person: '', stage: '', status: ''
       });
-      setSelectedRole('');
     } catch (error) {
       console.error(`${isEditing ? 'Edit' : 'Add'} failed:`, error);
     }
@@ -187,7 +165,7 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-serif text-gray-800 border-b-2 border-gray-300 pb-2">Processing Stages Management</h1>
+        <h1 className="text-3xl font-serif text-gray-800 border-b-2 border-gray-300 pb-2">{moduleName}</h1>
         <button
           onClick={handleAdd}
           className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 flex items-center"
@@ -203,99 +181,35 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
             <div className="grid grid-cols-2 gap-4">
               <div className="mb-4">
                 <label className="block text-gray-700">Article Name</label>
-                <input
-                  type="text"
-                  name="articleName"
-                  value={formData.articleName}
-                  onChange={handleFormChange}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="text" name="articleName" value={formData.articleName} onChange={handleFormChange} className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700">Article No</label>
-                <input
-                  type="text"
-                  name="articleNo"
-                  value={formData.articleNo}
-                  onChange={handleFormChange}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="text" name="articleNo" value={formData.articleNo} onChange={handleFormChange} className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700">Name</label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleFormChange}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
+                <input type="text" name="name" value={formData.name} onChange={handleFormChange} className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required />
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700">Quantity</label>
-                <input
-                  type="number"
-                  name="quantity"
-                  value={formData.quantity}
-                  onChange={handleFormChange}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="number" name="quantity" value={formData.quantity} onChange={handleFormChange} className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700">Total</label>
-                <input
-                  type="number"
-                  name="total"
-                  value={formData.total}
-                  onChange={handleFormChange}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="number" name="total" value={formData.total} onChange={handleFormChange} className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700">Paid</label>
-                <input
-                  type="number"
-                  name="paid"
-                  value={formData.paid}
-                  onChange={handleFormChange}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                <input type="number" name="paid" value={formData.paid} onChange={handleFormChange} className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700">Remaining</label>
-                <input
-                  disabled
-                  type="number"
-                  name="remaining"
-                  value={formData.remaining}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-gray-700">Role</label>
-                <select
-                  name="role"
-                  value={selectedRole}
-                  onChange={handleFormChange}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select Role</option>
-                  {roleOptions.map((role, idx) => (
-                    <option key={idx} value={role}>{role}</option>
-                  ))}
-                </select>
+                <input disabled type="number" name="remaining" value={formData.remaining} className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700">Person Name</label>
-                <select
-                  name="person"
-                  value={formData.person}
-                  onChange={handleFormChange}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
+                <select name="person" value={formData.person} onChange={handleFormChange} className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required >
                   <option value="">Select Person</option>
                   {personOptions.map((p, idx) => (
                     <option key={idx} value={p}>{p}</option>
@@ -304,13 +218,7 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
               </div>
               <div className="mb-4">
                 <label className="block text-gray-700">Status</label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleFormChange}
-                  className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
+                <select name="status" value={formData.status} onChange={handleFormChange} className="w-full p-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required >
                   <option value="">Select Status</option>
                   <option value="pending">Pending</option>
                   <option value="completed">Completed</option>
@@ -318,17 +226,10 @@ const ProcessList: React.FC<{ condition: string }> = ({ condition }) => {
               </div>
             </div>
             <div className="flex justify-end space-x-4">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-              >
+              <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700" >
                 Cancel
               </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
+              <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700" >
                 {isEditing ? 'Update' : 'Create'}
               </button>
             </div>

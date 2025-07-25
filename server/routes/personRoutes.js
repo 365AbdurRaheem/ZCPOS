@@ -101,6 +101,19 @@ router.get('/personNames/:role', async (req, res) => {
   }
 });
 
+router.get('/personNames', async (req, res) => {
+  try {
+    const data = await readSheet(SHEET_ID, 'Sheet1!B2:B'); // Read Name
+    const personNames = data.map(row => ({
+        name: row[0] || '',
+      }));
+
+    res.json({ persons: personNames });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // GET /api/persons?roleName=SomeRole - Get Persons by RoleName (No Pagination)
 // router.get('/', async (req, res) => {

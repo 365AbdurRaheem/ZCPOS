@@ -38,28 +38,23 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
     { name: 'Packing', icon: Archive, path: '/packing' },
   ];
 
-  const currentPageName = navItems.find(item => location.pathname.startsWith(item.path) || (location.pathname === '/' && item.path === '/'))?.name || '';
-
   return (
     <div
       className={`fixed left-0 top-0 h-screen bg-white text-gray-800 flex flex-col shadow-lg
         ${isOpen ? 'w-64' : 'w-16'}
         transition-all duration-300 ease-in-out`}
     >
-      <div
-        className={`p-4 text-xl font-semibold text-blue-600 border-b border-gray-200 flex items-center
-          ${isOpen ? 'justify-between' : 'justify-center'}`}
-      >
+      <div className={`p-4 text-xl font-semibold text-blue-600 border-b border-gray-200 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
         {isOpen ? (
           <>
-            <span>{currentPageName || 'ZCPOS'}</span>
+            <img src="/1.png" alt="Logo" className="w-21 h-21 -ml-2 mb-3" />
             <button onClick={toggleSidebar} className="p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-              <ChevronLeft size={18} />
+              <ChevronLeft size={20} />
             </button>
           </>
         ) : (
           <button onClick={toggleSidebar} className="p-1 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <ChevronRight size={18} />
+            <ChevronRight size={20} />
           </button>
         )}
       </div>
@@ -87,9 +82,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, setIsOpen }) => {
         </ul>
       </nav>
 
-      <div className={`p-3 text-xs text-gray-500 border-t border-gray-200 text-center
+      <div className={`p-3 text-xs text-gray-600 border-t border-gray-300 my-2 -mx-2 text-center
         ${isOpen ? 'block' : 'hidden'}`}>
-        ZCPOS v1.0.0
+        Developed By FBR
       </div>
     </div>
   );
