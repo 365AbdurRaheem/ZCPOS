@@ -24,12 +24,12 @@ router.post('/', async (req, res) => {
     if (!productName) return res.status(400).json({ error: 'name is required' });
     if (!barcodeNumber) return res.status(400).json({ error: 'barcodeNumber is required' });
 
-    await ensureHeaders(SHEET_ID, "Sheet1!A1:J", HEADERS);
-    const data = await readSheet(SHEET_ID, RANGE);
+    // await ensureHeaders(SHEET_ID, "Sheet1!A1:J", HEADERS);
+    // const data = await readSheet(SHEET_ID, RANGE);
 
     // Check if barcode already exists
-    const exists = data?.some(row => (row[10] || '').toLowerCase() === barcodeNumber.toLowerCase());
-    if (exists) return res.status(400).json({ error: 'Product with this barcode already exists' });
+    // const exists = data?.some(row => (row[10] || '').toLowerCase() === barcodeNumber.toLowerCase());
+    // if (exists) return res.status(400).json({ error: 'Product with this barcode already exists' });
 
     const product = new Product({
       articleName,
@@ -61,6 +61,15 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.get('/total', async (req, res) => {
+  try {
+    const total = await getTotalRowCount(SHEET_ID, 'Sheet1');
+    res.json({ total });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch total rows' });
+  }
+});
+
 // GET /api/products - Read All Products (No Pagination)
 router.get('/', async (req, res) => {
   try {
@@ -80,7 +89,7 @@ router.get('/', async (req, res) => {
       barcodeNumber: row[9] || ''
     })) || [];
 
-    res.json(products);
+    res.json({ products : products });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -91,12 +100,11 @@ router.get('/paginated', async (req, res) => {
   try {
     const pageNumber = parseInt(req.query.pageNumber) || 1;
     const pageSize = parseInt(req.query.pageSize) || 20;
-    const search = req.query.search || '';
 
     // Compute range for this page
     const startRow = (pageNumber - 1) * pageSize + 2; // +2 to skip header
     const endRow = startRow + pageSize - 1;
-    const range = `Sheet1!A${startRow}:K${endRow}`;
+    const range = `Sheet1!A${startRow}:J${endRow}`;
     const data = await readSheet(SHEET_ID, range);
     
     let products = data?.map(row => ({
@@ -111,18 +119,6 @@ router.get('/paginated', async (req, res) => {
       createdOn: row[8] || '',
       barcodeNumber: row[9] || ''
     })) || [];
-
-    // Filter by search term
-    if (search) {
-      products = products.filter(product =>
-        product.productName.toLowerCase().includes(search.toLowerCase()) ||
-        product.articleName.toLowerCase().includes(search.toLowerCase()) ||
-        product.barcodeNumber.toLowerCase().includes(search.toLowerCase()) ||
-        product.articleNo.toLowerCase().includes(search.toLowerCase())
-      );
-    }
-
-    const total = await getTotalRowCount(SHEET_ID, 'Sheet1');
 
     res.json({
       total,
@@ -158,10 +154,10 @@ router.put('/:id', async (req, res) => {
     const existingRow = data[index];
     
     // Check if barcode already exists (excluding current product)
-    if (barcodeNumber && barcodeNumber !== existingRow[10]) {
-      const exists = data?.some((row, i) => i !== index && (row[10] || '').toLowerCase() === barcodeNumber.toLowerCase());
-      if (exists) return res.status(400).json({ error: 'Product with this barcode already exists' });
-    }
+    // if (barcodeNumber && barcodeNumber !== existingRow[10]) {
+    //   const exists = data?.some((row, i) => i !== index && (row[10] || '').toLowerCase() === barcodeNumber.toLowerCase());
+    //   if (exists) return res.status(400).json({ error: 'Product with this barcode already exists' });
+    // }
     
     // Create updated product to validate inputs
     const updatedProduct = new Product({
@@ -196,18 +192,12 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE /api/products/:id - Soft Delete Product (blank row)
-router.delete('/:id', async (req, res) => {
+// DELETE /api/products/:index
+router.delete('/:index', async (req, res) => {
   try {
-    const { id } = req.params;
-
-    const data = await readSheet(SHEET_ID, RANGE);
-    const index = data?.findIndex(row => row[0] === id);
-
+    const index = parseInt(req.params.index)
     if (index === -1) return res.status(404).json({ error: 'Product not found' });
-
     await deleteRow(SHEET_ID, index + 2);
-
     res.json({ message: 'Product deleted (row removed)' });
   } catch (err) {
     res.status(500).json({ error: err.message });

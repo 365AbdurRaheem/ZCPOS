@@ -42,7 +42,6 @@ router.post('/', async (req, res) => {
       condition: stage, 
       status
     });
-    console.log(processingStage)
 
     await appendRow(SHEET_ID, RANGE, [
       processingStage.id,

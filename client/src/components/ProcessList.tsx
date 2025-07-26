@@ -128,7 +128,6 @@ const ProcessList: React.FC<{ condition: string, moduleName : string }> = ({ con
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
-      console.log(formData)
       await fetchStages();
       await fetchTotal();
       setShowForm(false);
