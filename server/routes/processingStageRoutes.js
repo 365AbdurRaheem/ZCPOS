@@ -22,7 +22,6 @@ router.post('/', async (req, res) => {
       stage,
       status
     } = req.body;
-console.log(req.body)
     if (!name) return res.status(400).json({ error: 'name is required' });
     if (!person) return res.status(400).json({ error: 'personName is required' });
     if (!stage) return res.status(400).json({ error: 'condition is required' });
@@ -39,10 +38,11 @@ console.log(req.body)
       total,
       paid,
       remaining,
-      person,
-      condition : stage,
+      personName: person,
+      condition: stage, 
       status
     });
+    console.log(processingStage)
 
     await appendRow(SHEET_ID, RANGE, [
       processingStage.id,
@@ -55,7 +55,7 @@ console.log(req.body)
       processingStage.remaining,
       processingStage.createdOn,
       processingStage.person,
-      processingStage.condition,
+      processingStage.stage,
       processingStage.status
     ]);
 

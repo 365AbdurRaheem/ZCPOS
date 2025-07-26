@@ -36,6 +36,7 @@ async function updateRow(sheetId, range, row) {
 }
 
 async function appendRow(sheetId, range, row) {
+  console.log(row)
   const res = await sheets.spreadsheets.values.append({
     spreadsheetId: sheetId,
     range,
